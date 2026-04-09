@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>RGB灯控制</title>
+  <style>
+    button {
+      padding: 15px 30px;
+      font-size: 18px;
+      margin: 10px;
+      cursor: pointer;
+    }
+    #status {
+      margin-top: 20px;
+      font-size: 16px;
+      color: #333;
+    }
+  </style>
+</head>
+<body>
+  <h1>树莓派RGB灯控制</h1>
+  <button onclick="controlLed('red')">亮红灯</button>
+  <button onclick="controlLed('green')">亮绿灯</button>
+  <button onclick="controlLed('blue')">亮蓝灯</button>
+  <button onclick="controlLed('white')">亮白灯</button>
+  <button onclick="controlLed('off')">关闭所有灯</button>
+  <div id="status">等待操作...</div>
+
+  <script>
+    // 树莓派的IP地址（本地测试也可用 localhost）
+    const piIp = 'localhost'; // 若从其他设备访问，替换为树莓派实际IP（如192.168.1.100）
+    const port = 3000;
+
+    // 控制LED的函数
+    async function controlLed(color) {
+      const statusDiv = document.getElementById('status');
+      try {
+        // 调用后端接口
+        const response = await fetch(`http://${piIp}:${port}/led/${color}`);
+        const result = await response.json();
+        // 更新状态显示
+        statusDiv.textContent = result.msg;
+        statusDiv.style.color = result.status === 'success' ? 'green' : 'red';
+      } catch (err) {
+        statusDiv.textContent = `操作失败：${err.message}`;
+        statusDiv.style.color = 'red';
+      }
+    }
+  </script>
+</body>
+</html>

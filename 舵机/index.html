@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>MG90S舵机90°增量控制</title>
+    <style>
+        button {
+            padding: 25px 50px;
+            font-size: 22px;
+            margin: 15px;
+            cursor: pointer;
+            border: none;
+            border-radius: 10px;
+            color: white;
+        }
+        .forward { background: #4CAF50; } /* 绿色：正向 */
+        .backward { background: #f44336; } /* 红色：反向 */
+        .reset { background: #2196F3; }    /* 蓝色：归位 */
+        #status {
+            margin-top: 20px;
+            font-size: 20px;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <h1>MG90S舵机90°增量控制</h1>
+    <button class="forward" onclick="rotateForward()">正向旋转90°</button>
+    <button class="backward" onclick="rotateBackward()">反向旋转90°</button>
+    <button class="reset" onclick="resetServo()">归位到0°</button>
+    <div id="status">舵机初始角度：0°（PWM=900）</div>
+
+    <script>
+        const piIp = 'localhost'; // 本地用localhost，其他设备换树莓派IP
+        const port = 3000;
+
+        // 正向旋转90°
+        async function rotateForward() {
+            const statusDiv = document.getElementById('status');
+            try {
+                statusDiv.textContent = '正在正向旋转90°...';
+                const response = await fetch(`http://${piIp}:${port}/servo/rotate/forward`);
+                const result = await response.json();
+                statusDiv.textContent = result.msg;
+                statusDiv.style.color = result.status === 'success' ? 'green' : 'red';
+            } catch (err) {
+                statusDiv.textContent = `正向旋转失败：${err.message}`;
+                statusDiv.style.color = 'red';
+            }
+        }
+
+        // 反向旋转90°
+        async function rotateBackward() {
+            const statusDiv = document.getElementById('status');
+            try {
+                statusDiv.textContent = '正在反向旋转90°...';
+                const response = await fetch(`http://${piIp}:${port}/servo/rotate/backward`);
+                const result = await response.json();
+                statusDiv.textContent = result.msg;
+                statusDiv.style.color = result.status === 'success' ? 'green' : 'red';
+            } catch (err) {
+                statusDiv.textContent = `反向旋转失败：${err.message}`;
+                statusDiv.style.color = 'red';
+            }
+        }
+
+        // 归位到0°
+        async function resetServo() {
+            const statusDiv = document.getElementById('status');
+            try {
+                statusDiv.textContent = '正在归位到0°...';
+                const response = await fetch(`http://${piIp}:${port}/servo/reset`);
+                const result = await response.json();
+                statusDiv.textContent = result.msg;
+                statusDiv.style.color = result.status === 'success' ? 'green' : 'red';
+            } catch (err) {
+                statusDiv.textContent = `归位失败：${err.message}`;
+                statusDiv.style.color = 'red';
+            }
+        }
+    </script>
+</body>
+</html>

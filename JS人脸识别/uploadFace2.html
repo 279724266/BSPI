@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>业主人脸上传</title>
+    <script src="./models/tf.min.js"></script>
+    <script src="./models/face-api.min.js"></script>
+    <style>
+        body {
+            font-family: 'Microsoft YaHei', sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f7fa;
+        }
+        
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 30px;
+        }
+        
+        .upload-section {
+            margin-bottom: 30px;
+        }
+        
+        .file-input {
+            display: block;
+            width: 100%;
+            padding: 15px;
+            margin-bottom: 15px;
+            border: 2px dashed #ddd;
+            border-radius: 8px;
+            background-color: #fafafa;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .file-input:hover {
+            border-color: #4a6cf7;
+            background-color: #f0f4ff;
+        }
+        
+        .time-section {
+            margin-bottom: 20px;
+            padding: 20px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            border: 1px solid #e0e0e0;
+        }
+        
+        .time-section h3 {
+            margin-top: 0;
+            color: #4a6cf7;
+            margin-bottom: 15px;
+        }
+        
+        .time-options {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .time-option {
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: white;
+        }
+        
+        .time-option:hover {
+            border-color: #4a6cf7;
+            background-color: #f0f4ff;
+        }
+        
+        .time-option.selected {
+            border-color: #4a6cf7;
+            background-color: #4a6cf7;
+            color: white;
+        }
+        
+        .time-display {
+            text-align: center;
+            padding: 15px;
+            background-color: #e3f2fd;
+            border-radius: 6px;
+            color: #1565c0;
+            font-weight: bold;
+        }
+        
+        button {
+            background: #4a6cf7;
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.2s;
+            width: 100%;
+        }
+        
+        button:hover {
+            background: #3a5af5;
+            transform: translateY(-2px);
+        }
+        
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .status {
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        
+        .status.success {
+            background-color: #e8f5e9;
+            color: #2e7d32;
+            border: 1px solid #c8e6c9;
+        }
+        
+        .status.error {
+            background-color: #ffebee;
+            color: #c62828;
+            border: 1px solid #ffcdd2;
+        }
+        
+        .status.info {
+            background-color: #e3f2fd;
+            color: #1565c0;
+            border: 1px solid #bbdefb;
+        }
+        
+        .upload-result {
+            margin-top: 20px;
+            padding: 20px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+        }
+        
+        .upload-result h3 {
+            margin-top: 0;
+            color: #4a6cf7;
+        }
+        
+        .file-item {
+            padding: 10px;
+            margin-bottom: 10px;
+            background-color: white;
+            border-radius: 5px;
+            border-left: 4px solid #4a6cf7;
+        }
+        
+        .file-item.success {
+            border-left-color: #4caf50;
+        }
+        
+        .file-item.error {
+            border-left-color: #f44336;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background-color: #e0e0e0;
+            border-radius: 4px;
+            margin: 10px 0;
+            overflow: hidden;
+        }
+        
+        .progress-bar-fill {
+            height: 100%;
+            background-color: #4a6cf7;
+            border-radius: 4px;
+            transition: width 0.3s;
+            width: 0;
+        }
+        
+        .expiry-info {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+        
+        .view-storage-btn {
+            background: #ff9800;
+            margin-top: 10px;
+        }
+        
+        .view-storage-btn:hover {
+            background: #f57c00;
+        }
+        
+        .storage-item {
+            padding: 15px;
+            margin-bottom: 10px;
+            background-color: white;
+            border-radius: 5px;
+            border: 1px solid #e0e0e0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .storage-item-content {
+            flex: 1;
+            margin-right: 15px;
+        }
+        
+        .storage-item-key {
+            font-weight: bold;
+            color: #4a6cf7;
+            margin-bottom: 5px;
+            word-break: break-all;
+        }
+        
+        .storage-item-value {
+            font-size: 12px;
+            color: #666;
+            word-break: break-all;
+            max-height: 60px;
+            overflow-y: auto;
+        }
+        
+        .delete-btn {
+            background: #f44336;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+            width: auto;
+            min-width: 80px;
+        }
+        
+        .delete-btn:hover {
+            background: #d32f2f;
+            transform: translateY(-1px);
+        }
+        
+        .empty-storage {
+            text-align: center;
+            color: #999;
+            padding: 30px;
+        }
+        
+        .storage-count {
+            text-align: center;
+            color: #666;
+            margin-bottom: 15px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>业主端人脸上传系统</h1>
+        
+        <div class="time-section">
+            <h3>选择有效期</h3>
+            <div class="time-options">
+                <div class="time-option" data-hours="1">1小时</div>
+                <div class="time-option" data-hours="6">6小时</div>
+                <div class="time-option" data-hours="12">12小时</div>
+                <div class="time-option" data-hours="24">1天</div>
+                <div class="time-option" data-hours="72">3天</div>
+                <div class="time-option" data-hours="168">7天</div>
+                <div class="time-option" data-hours="336">14天</div>
+                <div class="time-option" data-hours="720">30天</div>
+            </div>
+            <div class="time-display" id="timeDisplay">请选择有效期（1小时-30天）</div>
+        </div>
+        
+        <div class="upload-section">
+            <input type="file" id="fileInput" class="file-input" accept="image/*" multiple>
+            <button id="uploadBtn">上传并处理照片</button>
+            <button id="viewStorageBtn" class="view-storage-btn">查看已上传的人脸</button>
+            <button id="viewAllStorageBtn" class="view-storage-btn" style="background: #9c27b0;">查看所有存储的键值对</button>
+        </div>
+        
+        <div id="status" class="status info">
+            请选择有效期并上传人脸照片...
+        </div>
+        
+        <div class="progress-bar">
+            <div id="progressBarFill" class="progress-bar-fill"></div>
+        </div>
+        
+        <div id="uploadResult" class="upload-result" style="display: none;">
+            <h3>上传结果</h3>
+            <div id="resultList"></div>
+        </div>
+        
+        <div id="storageResult" class="upload-result" style="display: none;">
+            <h3>已上传的人脸</h3>
+            <div id="storageList"></div>
+        </div>
+        
+        <div id="allStorageResult" class="upload-result" style="display: none;">
+            <h3>LocalStorage所有键值对</h3>
+            <div id="allStorageList"></div>
+        </div>
+    </div>
+
+    <script>
+        let isProcessing = false;
+        let currentModel = 'tiny';
+        let minConfidence = 0.3;
+        const modelPath = './models';
+        let selectedHours = null;
+        
+        const fileInput = document.getElementById('fileInput');
+        const uploadBtn = document.getElementById('uploadBtn');
+        const statusElement = document.getElementById('status');
+        const progressBarFill = document.getElementById('progressBarFill');
+        const uploadResult = document.getElementById('uploadResult');
+        const resultList = document.getElementById('resultList');
+        const viewStorageBtn = document.getElementById('viewStorageBtn');
+        const storageResult = document.getElementById('storageResult');
+        const storageList = document.getElementById('storageList');
+        const timeDisplay = document.getElementById('timeDisplay');
+        const timeOptions = document.querySelectorAll('.time-option');
+        const viewAllStorageBtn = document.getElementById('viewAllStorageBtn');
+        const allStorageResult = document.getElementById('allStorageResult');
+        const allStorageList = document.getElementById('allStorageList');
+        
+        async function init() {
+            try {
+                statusElement.textContent = '正在加载人脸检测模型...';
+                statusElement.className = 'status info';
+                
+                await Promise.all([
+                    faceapi.nets.tinyFaceDetector.loadFromUri(modelPath + '/tiny_face_detector'),
+                    faceapi.nets.faceLandmark68Net.loadFromUri(modelPath + '/face_landmark_68'),
+                    faceapi.nets.faceRecognitionNet.loadFromUri(modelPath + '/face_recognition')
+                ]);
+                
+                statusElement.textContent = '模型加载完成，请选择有效期并上传照片...';
+                statusElement.className = 'status success';
+                uploadBtn.disabled = false;
+                
+                loadExistingFaces();
+                
+            } catch (error) {
+                console.error('模型加载失败:', error);
+                statusElement.innerHTML = `模型加载失败: ${error.message}`;
+                statusElement.className = 'status error';
+            }
+        }
+        
+        timeOptions.forEach(option => {
+            option.addEventListener('click', () => {
+                timeOptions.forEach(opt => opt.classList.remove('selected'));
+                option.classList.add('selected');
+                selectedHours = parseInt(option.dataset.hours);
+                
+                const expiryDate = new Date(Date.now() + selectedHours * 60 * 60 * 1000);
+                timeDisplay.textContent = `有效期: ${selectedHours}小时 (到期时间: ${expiryDate.toLocaleString('zh-CN')})`;
+                timeDisplay.style.backgroundColor = '#e8f5e9';
+                timeDisplay.style.color = '#2e7d32';
+            });
+        });
+        
+        async function uploadPhotos() {
+            if (!selectedHours) {
+                statusElement.textContent = '请先选择有效期';
+                statusElement.className = 'status error';
+                return;
+            }
+            
+            const files = Array.from(fileInput.files);
+            if (files.length === 0) {
+                statusElement.textContent = '请先选择照片';
+                statusElement.className = 'status error';
+                return;
+            }
+            
+            isProcessing = true;
+            uploadBtn.disabled = true;
+            viewStorageBtn.disabled = true;
+            statusElement.textContent = `开始处理 ${files.length} 张照片...`;
+            statusElement.className = 'status info';
+            
+            uploadResult.style.display = 'block';
+            resultList.innerHTML = '';
+            
+            let processedCount = 0;
+            let savedCount = 0;
+            
+            for (const file of files) {
+                try {
+                    const progress = ((processedCount + 1) / files.length) * 100;
+                    progressBarFill.style.width = `${progress}%`;
+                    
+                    const fileItem = document.createElement('div');
+                    fileItem.className = 'file-item';
+                    fileItem.innerHTML = `<strong>${file.name}</strong>: 处理中...`;
+                    resultList.appendChild(fileItem);
+                    
+                    const success = await processPhoto(file);
+                    
+                    if (success) {
+                        fileItem.className = 'file-item success';
+                        const expiryDate = new Date(Date.now() + selectedHours * 60 * 60 * 1000);
+                        fileItem.innerHTML = `
+                            <strong>${file.name}</strong>: 成功保存<br>
+                            <div class="expiry-info">有效期: ${selectedHours}小时 (到期: ${expiryDate.toLocaleString('zh-CN')})</div>
+                        `;
+                        savedCount++;
+                    } else {
+                        fileItem.className = 'file-item error';
+                        fileItem.innerHTML = `<strong>${file.name}</strong>: 未检测到人脸`;
+                    }
+                    
+                } catch (error) {
+                    console.error(`处理照片 ${file.name} 失败:`, error);
+                    const fileItem = document.createElement('div');
+                    fileItem.className = 'file-item error';
+                    fileItem.innerHTML = `<strong>${file.name}</strong>: 处理失败 - ${error.message}`;
+                    resultList.appendChild(fileItem);
+                } finally {
+                    processedCount++;
+                }
+            }
+            
+            progressBarFill.style.width = '100%';
+            statusElement.textContent = `处理完成，成功保存 ${savedCount}/${files.length} 张人脸`;
+            statusElement.className = 'status success';
+            
+            isProcessing = false;
+            uploadBtn.disabled = false;
+            viewStorageBtn.disabled = false;
+            
+            fileInput.value = '';
+        }
+        
+        async function processPhoto(file) {
+            const imgElement = await new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const img = new Image();
+                    img.onload = () => resolve(img);
+                    img.onerror = reject;
+                    img.src = e.target.result;
+                };
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+            
+            const options = new faceapi.TinyFaceDetectorOptions({
+                inputSize: 320,
+                scoreThreshold: minConfidence
+            });
+            
+            const detections = await faceapi.detectAllFaces(
+                imgElement, 
+                options
+            ).withFaceLandmarks()
+             .withFaceDescriptors();
+            
+            if (detections.length === 0) {
+                return false;
+            } else if (detections.length > 1) {
+                console.log(`照片 ${file.name} 中检测到 ${detections.length} 张人脸，只保存第一张`);
+            }
+            
+            const faceDescriptor = detections[0].descriptor;
+            const fileName = file.name.split('.').slice(0, -1).join('.');
+            const keyName = `yeZhu_face_descriptor_${fileName}_${Date.now()}`;
+            
+            const expiryTime = Date.now() + selectedHours * 60 * 60 * 1000;
+            
+            const faceData = {
+                descriptor: Array.from(faceDescriptor),
+                expiryTime: expiryTime,
+                uploadTime: Date.now(),
+                duration: selectedHours
+            };
+            
+            localStorage.setItem(keyName, JSON.stringify(faceData));
+            
+            return true;
+        }
+        
+        function loadExistingFaces() {
+            let count = 0;
+            const now = Date.now();
+            
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key && key.startsWith('yeZhu_face_descriptor_')) {
+                    try {
+                        const data = JSON.parse(localStorage.getItem(key));
+                        if (data.expiryTime > now) {
+                            count++;
+                        }
+                    } catch (e) {
+                        console.error('解析人脸数据失败:', e);
+                    }
+                }
+            }
+            
+            if (count > 0) {
+                const existingInfo = document.createElement('div');
+                existingInfo.className = 'status success';
+                existingInfo.textContent = `当前有 ${count} 个有效的人脸数据`;
+                statusElement.insertAdjacentElement('afterend', existingInfo);
+            }
+        }
+        
+        function viewStorage() {
+            console.log('viewStorage 函数被调用');
+            storageResult.style.display = 'block';
+            storageList.innerHTML = '';
+            
+            const keys = [];
+            const now = Date.now();
+            
+            console.log('开始遍历localStorage...');
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                console.log(`检查键: ${key}`);
+                if (key && key.startsWith('yeZhu_face_descriptor_')) {
+                    keys.push(key);
+                    console.log(`添加键: ${key}`);
+                }
+            }
+            
+            console.log(`找到 ${keys.length} 个yeZhu_face_descriptor键`);
+            
+            if (keys.length === 0) {
+                storageList.innerHTML = '<div class="empty-storage">暂无上传的人脸数据</div>';
+                console.log('没有找到人脸数据');
+                return;
+            }
+            
+            const countDiv = document.createElement('div');
+            countDiv.className = 'storage-count';
+            countDiv.textContent = `共 ${keys.length} 个人脸数据`;
+            storageList.appendChild(countDiv);
+            
+            keys.forEach(key => {
+                const value = localStorage.getItem(key);
+                let data;
+                let isExpired = false;
+                let expiryInfo = '';
+                
+                try {
+                    data = JSON.parse(value);
+                    const expiryDate = new Date(data.expiryTime);
+                    isExpired = data.expiryTime <= now;
+                    
+                    if (isExpired) {
+                        expiryInfo = `<span style="color: #f44336;">已过期 (${expiryDate.toLocaleString('zh-CN')})</span>`;
+                    } else {
+                        expiryInfo = `<span style="color: #4caf50;">有效期至: ${expiryDate.toLocaleString('zh-CN')}</span>`;
+                    }
+                } catch (e) {
+                    console.error('解析人脸数据失败:', e);
+                    expiryInfo = '数据格式错误';
+                }
+                
+                const itemDiv = document.createElement('div');
+                itemDiv.className = 'storage-item';
+                if (isExpired) {
+                    itemDiv.style.opacity = '0.6';
+                }
+                
+                const contentDiv = document.createElement('div');
+                contentDiv.className = 'storage-item-content';
+                
+                const keyDiv = document.createElement('div');
+                keyDiv.className = 'storage-item-key';
+                keyDiv.textContent = `键: ${key}`;
+                
+                const valueDiv = document.createElement('div');
+                valueDiv.className = 'storage-item-value';
+                valueDiv.innerHTML = `${expiryInfo}<br>上传时间: ${new Date(data.uploadTime).toLocaleString('zh-CN')}<br>有效期: ${data.duration}小时`;
+                
+                contentDiv.appendChild(keyDiv);
+                contentDiv.appendChild(valueDiv);
+                
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'delete-btn';
+                deleteBtn.textContent = '删除';
+                deleteBtn.onclick = () => deleteStorageItem(key);
+                
+                itemDiv.appendChild(contentDiv);
+                itemDiv.appendChild(deleteBtn);
+                
+                storageList.appendChild(itemDiv);
+            });
+            
+            console.log('viewStorage 函数执行完成');
+        }
+        
+        function deleteStorageItem(key) {
+            if (confirm(`确定要删除此人脸数据吗？此操作不可恢复。`)) {
+                localStorage.removeItem(key);
+                statusElement.textContent = '已删除人脸数据';
+                statusElement.className = 'status success';
+                viewStorage();
+                
+                if (allStorageResult.style.display !== 'none') {
+                    viewAllStorage();
+                }
+            }
+        }
+        
+        function viewAllStorage() {
+            allStorageResult.style.display = 'block';
+            allStorageList.innerHTML = '';
+            
+            const keys = [];
+            for (let i = 0; i < localStorage.length; i++) {
+                keys.push(localStorage.key(i));
+            }
+            
+            if (keys.length === 0) {
+                allStorageList.innerHTML = '<div class="empty-storage">LocalStorage为空</div>';
+                return;
+            }
+            
+            const countDiv = document.createElement('div');
+            countDiv.className = 'storage-count';
+            countDiv.textContent = `共 ${keys.length} 个键值对`;
+            allStorageList.appendChild(countDiv);
+            
+            keys.forEach(key => {
+                const value = localStorage.getItem(key);
+                
+                const itemDiv = document.createElement('div');
+                itemDiv.className = 'storage-item';
+                
+                const contentDiv = document.createElement('div');
+                contentDiv.className = 'storage-item-content';
+                
+                const keyDiv = document.createElement('div');
+                keyDiv.className = 'storage-item-key';
+                keyDiv.textContent = `键: ${key}`;
+                
+                const valueDiv = document.createElement('div');
+                valueDiv.className = 'storage-item-value';
+                valueDiv.textContent = `值: ${value.substring(0, 200)}${value.length > 200 ? '...' : ''}`;
+                
+                contentDiv.appendChild(keyDiv);
+                contentDiv.appendChild(valueDiv);
+                
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'delete-btn';
+                deleteBtn.textContent = '删除';
+                deleteBtn.onclick = () => deleteAllStorageItem(key);
+                
+                itemDiv.appendChild(contentDiv);
+                itemDiv.appendChild(deleteBtn);
+                
+                allStorageList.appendChild(itemDiv);
+            });
+        }
+        
+        function deleteAllStorageItem(key) {
+            if (confirm(`确定要删除键 "${key}" 吗？此操作不可恢复。`)) {
+                localStorage.removeItem(key);
+                statusElement.textContent = `已删除键: ${key}`;
+                statusElement.className = 'status success';
+                viewAllStorage();
+            }
+        }
+        
+        uploadBtn.addEventListener('click', uploadPhotos);
+        viewStorageBtn.addEventListener('click', viewStorage);
+        viewAllStorageBtn.addEventListener('click', viewAllStorage);
+        
+        console.log('事件监听器已绑定');
+        console.log('viewStorageBtn:', viewStorageBtn);
+        
+        window.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>

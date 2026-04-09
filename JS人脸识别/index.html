@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JS人脸识别系统</title>
+    <!-- 使用本地模型库 -->
+    <script src="./models/tf.min.js"></script>
+    <script src="./models/face-api.min.js"></script>
+    <style>
+        body {
+            font-family: 'Microsoft YaHei', sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f7fa;
+        }
+        
+        .container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        
+        .video-container {
+            position: relative;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        
+        #video, #canvas {
+            display: block;
+            width: 100%;
+            height: auto;
+            border-radius: 8px;
+        }
+        
+        .controls {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
+        
+        .control-group {
+            margin-bottom: 20px;
+        }
+        
+        button {
+            background: #4a6cf7;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+        
+        button:hover {
+            background: #3a5af5;
+            transform: translateY(-2px);
+        }
+        
+        select {
+            width: 100%;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+            margin-top: 5px;
+        }
+        
+        .status {
+            padding: 15px;
+            background: #eef7ff;
+            border-radius: 5px;
+            margin-top: 20px;
+            font-size: 14px;
+        }
+        
+        .info-panel {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
+        
+        .info-panel h3 {
+            color: #4a6cf7;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+        }
+        
+        .info-panel ul {
+            padding-left: 20px;
+        }
+        
+        .info-panel li {
+            margin-bottom: 8px;
+            line-height: 1.5;
+        }
+        
+
+        
+        @media (max-width: 768px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1 style="text-align: center; color: #2c3e50; margin-bottom: 30px;">JavaScript人脸识别系统</h1>
+    
+    <div class="container">
+        <div class="video-container">
+            <video id="video" playsinline></video>
+            <canvas id="canvas"></canvas>
+        </div>
+        
+        <div class="controls">
+            <h2>控制面板</h2>
+            <div class="control-group">
+                <button id="startBtn">启动摄像头</button>
+                <button id="stopBtn" disabled>停止检测</button>
+            </div>
+            
+            <div class="control-group">
+                <label>检测模型选择：</label>
+                <select id="modelSelect">
+                    <option value="tiny">轻量级模型（适合实时检测）</option>
+                    <option value="ssd">高精度模型（检测更准确）</option>
+                </select>
+            </div>
+            
+            <div class="control-group">
+                <label>最小置信度：</label>
+                <input type="range" id="confidenceSlider" min="0.1" max="0.99" step="0.01" value="0.3">
+                <span id="confidenceValue">0.3</span>
+            </div>
+            
+            <div class="status" id="status">
+                状态：等待启动摄像头...
+            </div>
+            
+            <div class="control-group">
+                <h3>人脸对比功能</h3>
+                <button id="saveFaceBtn" disabled>存储基准人脸</button>
+                <button id="captureFaceBtn" disabled>拍摄对比人脸</button>
+                <input type="file" id="uploadFaceBtn" accept="image/*" disabled multiple>
+                <button id="compareFaceBtn" disabled>开始人脸对比</button>
+                <button id="clearFaceBtn" disabled>清除基准人脸</button>
+            </div>
+            
+            <div class="status" id="compareResult">
+                对比结果：未开始对比
+            </div>
+        </div>
+    </div>
+    
+    <div class="info-panel">
+        <h3>系统信息与技术说明</h3>
+        <ul>
+            <li>基于TensorFlow.js和face-api.js实现，所有计算在浏览器端完成</li>
+            <li>支持人脸检测、68点关键点定位、7种表情识别、性别识别和年龄估计</li>
+            <li>轻量级模型体积仅1MB，高精度模型约4MB</li>
+            <li>支持WebGL加速，在支持WebGL的浏览器上性能提升5-10倍</li>
+            <li>完全符合GDPR等隐私法规，无需上传用户数据</li>
+            <li>情绪识别支持：开心、悲伤、生气、害怕、厌恶、惊讶、中性</li>
+            <li>年龄估计范围：0-100岁，误差范围通常在±3岁内</li>
+        </ul>
+    </div>
+    <video class="welcome-video" src="media/sound/welcome.mp3"></video>
+    <video class="alert-video" src="media/sound/alert.mp3"></video>
+    <video class="fire-alarm-video" src="media/sound/119.mp3"></video>
+    <video class="blacklist-video" src="media/sound/blackList.mp3"></video>
+
+    <script src="./1.js"></script>
+</body>
+</html>

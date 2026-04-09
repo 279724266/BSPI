@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>黑名单管理</title>
+    <script src="./JS人脸识别/models/tf.min.js"></script>
+    <script src="./JS人脸识别/models/face-api.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Microsoft YaHei', sans-serif;
+        }
+
+        body {
+            background: #f5f7fa;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 30px;
+        }
+
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 30px;
+        }
+
+        .upload-section {
+            background: #f8f9fa;
+            padding: 30px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+        }
+
+        .upload-section h2 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+        }
+
+        .upload-area {
+            border: 2px dashed #ddd;
+            border-radius: 8px;
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .upload-area:hover {
+            border-color: #4a6cf7;
+            background: #eef7ff;
+        }
+
+        .upload-area.dragover {
+            border-color: #4a6cf7;
+            background: #eef7ff;
+        }
+
+        .upload-icon {
+            font-size: 48px;
+            color: #999;
+            margin-bottom: 15px;
+        }
+
+        .upload-text {
+            color: #666;
+            margin-bottom: 15px;
+        }
+
+        #fileInput {
+            display: none;
+        }
+
+        .preview-container {
+            display: none;
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        #previewImage {
+            max-width: 300px;
+            max-height: 300px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .name-input {
+            margin-top: 15px;
+        }
+
+        .name-input input {
+            padding: 10px 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+            width: 300px;
+        }
+
+        .btn-group {
+            margin-top: 15px;
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        button {
+            padding: 10px 25px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: #4a6cf7;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #3a5af5;
+        }
+
+        .btn-danger {
+            background: #f44336;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #da190b;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        .list-section {
+            margin-top: 30px;
+        }
+
+        .list-section h2 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .blacklist-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .blacklist-table thead {
+            background: #f8f9fa;
+        }
+
+        .blacklist-table th,
+        .blacklist-table td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .blacklist-table th {
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .blacklist-table tbody tr:hover {
+            background: #f8f9fa;
+        }
+
+        .status {
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .status-loading {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .status-success {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .no-data {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+
+        .message {
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 15px;
+            display: none;
+        }
+
+        .message.show {
+            display: block;
+        }
+
+        .message.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .message.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+
+            .upload-area {
+                padding: 20px;
+            }
+
+            .name-input input {
+                width: 100%;
+            }
+
+            .btn-group {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚫 黑名单管理</h1>
+
+        <div class="upload-section">
+            <h2>添加黑名单人脸</h2>
+            <div class="upload-area" id="uploadArea">
+                <div class="upload-icon">📷</div>
+                <div class="upload-text">点击或拖拽上传人脸照片</div>
+                <input type="file" id="fileInput" accept="image/*">
+            </div>
+
+            <div class="preview-container" id="previewContainer">
+                <img id="previewImage" src="" alt="预览图片">
+                <div class="name-input">
+                    <input type="text" id="nameInput" placeholder="请输入姓名（可选）">
+                </div>
+                <div class="btn-group">
+                    <button class="btn-primary" id="addBtn">添加到黑名单</button>
+                    <button class="btn-secondary" id="cancelBtn">取消</button>
+                </div>
+            </div>
+
+            <div class="message" id="message"></div>
+        </div>
+
+        <div class="list-section">
+            <h2>
+                黑名单列表
+                <button class="btn-danger" id="clearAllBtn">清空黑名单</button>
+            </h2>
+            <table class="blacklist-table">
+                <thead>
+                    <tr>
+                        <th>序号</th>
+                        <th>姓名</th>
+                        <th>添加时间</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody id="blacklistBody">
+                    <tr>
+                        <td colspan="4" class="loading">加载中...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:3000/api';
+        const MODEL_PATH = './JS人脸识别/models';
+        let currentDescriptor = null;
+        let modelsLoaded = false;
+
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const previewContainer = document.getElementById('previewContainer');
+        const previewImage = document.getElementById('previewImage');
+        const nameInput = document.getElementById('nameInput');
+        const addBtn = document.getElementById('addBtn');
+        const cancelBtn = document.getElementById('cancelBtn');
+        const message = document.getElementById('message');
+        const blacklistBody = document.getElementById('blacklistBody');
+        const clearAllBtn = document.getElementById('clearAllBtn');
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loadModels();
+            loadBlackList();
+            setupEventListeners();
+        });
+
+        async function loadModels() {
+            try {
+                await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_PATH + '/tiny_face_detector');
+                await faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_PATH + '/face_landmark_68');
+                await faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_PATH + '/face_recognition');
+                modelsLoaded = true;
+                console.log('模型加载完成');
+            } catch (error) {
+                console.error('模型加载失败:', error);
+                showMessage('模型加载失败，请刷新页面重试', 'error');
+            }
+        }
+
+        function setupEventListeners() {
+            uploadArea.addEventListener('click', () => fileInput.click());
+            fileInput.addEventListener('change', handleFileSelect);
+            addBtn.addEventListener('click', addToBlackList);
+            cancelBtn.addEventListener('click', cancelUpload);
+            clearAllBtn.addEventListener('click', clearAllBlackList);
+
+            uploadArea.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                uploadArea.classList.add('dragover');
+            });
+
+            uploadArea.addEventListener('dragleave', () => {
+                uploadArea.classList.remove('dragover');
+            });
+
+            uploadArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                uploadArea.classList.remove('dragover');
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    handleFile(files[0]);
+                }
+            });
+        }
+
+        function handleFileSelect(e) {
+            const file = e.target.files[0];
+            if (file) {
+                handleFile(file);
+            }
+        }
+
+        async function handleFile(file) {
+            if (!file.type.startsWith('image/')) {
+                showMessage('请选择图片文件', 'error');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                previewImage.src = e.target.result;
+                previewContainer.style.display = 'block';
+                uploadArea.style.display = 'none';
+
+                await extractFaceDescriptor(e.target.result);
+            };
+            reader.readAsDataURL(file);
+        }
+
+        async function extractFaceDescriptor(imageSrc) {
+            if (!modelsLoaded) {
+                showMessage('模型正在加载中，请稍候...', 'error');
+                return;
+            }
+
+            try {
+                addBtn.textContent = '正在提取人脸特征...';
+                addBtn.disabled = true;
+
+                const img = await faceapi.fetchImage(imageSrc);
+                const detection = await faceapi.detectSingleFace(img, new faceapi.TinyFaceDetectorOptions())
+                    .withFaceLandmarks()
+                    .withFaceDescriptor();
+
+                if (!detection) {
+                    showMessage('未检测到人脸，请选择包含清晰人脸的照片', 'error');
+                    addBtn.textContent = '添加到黑名单';
+                    addBtn.disabled = false;
+                    return;
+                }
+
+                currentDescriptor = Array.from(detection.descriptor);
+                addBtn.textContent = '添加到黑名单';
+                addBtn.disabled = false;
+                showMessage('人脸特征提取成功，可以添加到黑名单', 'success');
+            } catch (error) {
+                console.error('提取人脸特征失败:', error);
+                showMessage('提取人脸特征失败: ' + error.message, 'error');
+                addBtn.textContent = '添加到黑名单';
+                addBtn.disabled = false;
+            }
+        }
+
+        async function addToBlackList() {
+            if (!currentDescriptor) {
+                showMessage('请先上传照片并提取人脸特征', 'error');
+                return;
+            }
+
+            const name = nameInput.value.trim() || '未知';
+
+            try {
+                addBtn.textContent = '正在添加...';
+                addBtn.disabled = true;
+
+                const response = await fetch(`${API_BASE}/blacklist`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        descriptor: currentDescriptor,
+                        name: name
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.status === 'success') {
+                    showMessage(result.msg, 'success');
+                    cancelUpload();
+                    loadBlackList();
+                } else {
+                    showMessage('添加失败: ' + result.msg, 'error');
+                    addBtn.textContent = '添加到黑名单';
+                    addBtn.disabled = false;
+                }
+            } catch (error) {
+                console.error('添加黑名单失败:', error);
+                showMessage('添加失败: ' + error.message, 'error');
+                addBtn.textContent = '添加到黑名单';
+                addBtn.disabled = false;
+            }
+        }
+
+        function cancelUpload() {
+            currentDescriptor = null;
+            previewImage.src = '';
+            nameInput.value = '';
+            previewContainer.style.display = 'none';
+            uploadArea.style.display = 'block';
+            fileInput.value = '';
+            hideMessage();
+        }
+
+        async function loadBlackList() {
+            try {
+                const response = await fetch(`${API_BASE}/blacklist`);
+                const result = await response.json();
+
+                if (result.status === 'success') {
+                    displayBlackList(result.data);
+                } else {
+                    blacklistBody.innerHTML = '<tr><td colspan="4" class="no-data">加载黑名单失败</td></tr>';
+                }
+            } catch (error) {
+                console.error('加载黑名单失败:', error);
+                blacklistBody.innerHTML = '<tr><td colspan="4" class="no-data">网络错误</td></tr>';
+            }
+        }
+
+        function displayBlackList(list) {
+            if (list.length === 0) {
+                blacklistBody.innerHTML = '<tr><td colspan="4" class="no-data">暂无黑名单记录</td></tr>';
+                return;
+            }
+
+            blacklistBody.innerHTML = list.map((item, index) => `
+                <tr>
+                    <td>${index + 1}</td>
+                    <td>${item.name}</td>
+                    <td>${item.addTime}</td>
+                    <td>
+                        <button class="btn-danger" onclick="deleteBlackList(${item.id})">删除</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        async function deleteBlackList(id) {
+            if (!confirm('确定要删除该黑名单记录吗？')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/blacklist/${id}`, {
+                    method: 'DELETE'
+                });
+                const result = await response.json();
+
+                if (result.status === 'success') {
+                    showMessage(result.msg, 'success');
+                    loadBlackList();
+                } else {
+                    showMessage('删除失败: ' + result.msg, 'error');
+                }
+            } catch (error) {
+                console.error('删除黑名单失败:', error);
+                showMessage('删除失败: ' + error.message, 'error');
+            }
+        }
+
+        async function clearAllBlackList() {
+            if (!confirm('确定要清空所有黑名单吗？此操作不可恢复！')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/blacklist`, {
+                    method: 'DELETE'
+                });
+                const result = await response.json();
+
+                if (result.status === 'success') {
+                    showMessage(result.msg, 'success');
+                    loadBlackList();
+                } else {
+                    showMessage('清空失败: ' + result.msg, 'error');
+                }
+            } catch (error) {
+                console.error('清空黑名单失败:', error);
+                showMessage('清空失败: ' + error.message, 'error');
+            }
+        }
+
+        function showMessage(text, type) {
+            message.textContent = text;
+            message.className = `message show ${type}`;
+            setTimeout(() => {
+                hideMessage();
+            }, 5000);
+        }
+
+        function hideMessage() {
+            message.className = 'message';
+        }
+    </script>
+</body>
+</html>

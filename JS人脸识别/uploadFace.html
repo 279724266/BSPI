@@ -1,0 +1,948 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>人脸照片上传</title>
+    <!-- 使用本地模型库 -->
+    <script src="./models/tf.min.js"></script>
+    <script src="./models/face-api.min.js"></script>
+    <style>
+        body {
+            font-family: 'Microsoft YaHei', sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f7fa;
+        }
+        
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 30px;
+        }
+        
+        .upload-section {
+            margin-bottom: 30px;
+        }
+        
+        .file-input {
+            display: block;
+            width: 100%;
+            padding: 15px;
+            margin-bottom: 15px;
+            border: 2px dashed #ddd;
+            border-radius: 8px;
+            background-color: #fafafa;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .file-input:hover {
+            border-color: #4a6cf7;
+            background-color: #f0f4ff;
+        }
+        
+        button {
+            background: #4a6cf7;
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.2s;
+            width: 100%;
+        }
+        
+        button:hover {
+            background: #3a5af5;
+            transform: translateY(-2px);
+        }
+        
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .status {
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        
+        .status.success {
+            background-color: #e8f5e9;
+            color: #2e7d32;
+            border: 1px solid #c8e6c9;
+        }
+        
+        .status.error {
+            background-color: #ffebee;
+            color: #c62828;
+            border: 1px solid #ffcdd2;
+        }
+        
+        .status.info {
+            background-color: #e3f2fd;
+            color: #1565c0;
+            border: 1px solid #bbdefb;
+        }
+        
+        .upload-result {
+            margin-top: 20px;
+            padding: 20px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+        }
+        
+        .upload-result h3 {
+            margin-top: 0;
+            color: #4a6cf7;
+        }
+        
+        .file-item {
+            padding: 10px;
+            margin-bottom: 10px;
+            background-color: white;
+            border-radius: 5px;
+            border-left: 4px solid #4a6cf7;
+        }
+        
+        .file-item.success {
+            border-left-color: #4caf50;
+        }
+        
+        .file-item.error {
+            border-left-color: #f44336;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background-color: #e0e0e0;
+            border-radius: 4px;
+            margin: 10px 0;
+            overflow: hidden;
+        }
+        
+        .progress-bar-fill {
+            height: 100%;
+            background-color: #4a6cf7;
+            border-radius: 4px;
+            transition: width 0.3s;
+            width: 0;
+        }
+        
+        .clear-btn {
+            background: #f44336;
+            margin-top: 15px;
+        }
+        
+        .clear-btn:hover {
+            background: #d32f2f;
+        }
+        
+        .time-section {
+            margin-bottom: 20px;
+            padding: 20px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            border: 1px solid #e0e0e0;
+        }
+        
+        .time-section h3 {
+            margin-top: 0;
+            color: #4a6cf7;
+            margin-bottom: 15px;
+        }
+        
+        .time-options {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .time-option {
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: white;
+        }
+        
+        .time-option:hover {
+            border-color: #4a6cf7;
+            background-color: #f0f4ff;
+        }
+        
+        .time-option.selected {
+            border-color: #4a6cf7;
+            background-color: #4a6cf7;
+            color: white;
+        }
+        
+        .time-display {
+            text-align: center;
+            padding: 15px;
+            background-color: #e3f2fd;
+            border-radius: 6px;
+            color: #1565c0;
+            font-weight: bold;
+        }
+        
+        .permanent-btn {
+            background: #4caf50;
+            margin-top: 10px;
+        }
+        
+        .permanent-btn:hover {
+            background: #45a049;
+        }
+        
+        .expiry-info {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+        
+        .category-section {
+            margin-bottom: 20px;
+            padding: 20px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            border: 1px solid #e0e0e0;
+        }
+        
+        .category-section h3 {
+            margin-top: 0;
+            color: #4a6cf7;
+            margin-bottom: 15px;
+        }
+        
+        .category-options {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .category-option {
+            padding: 15px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: white;
+            font-weight: bold;
+        }
+        
+        .category-option:hover {
+            border-color: #4a6cf7;
+            background-color: #f0f4ff;
+        }
+        
+        .category-option.selected {
+            border-color: #4a6cf7;
+            background-color: #4a6cf7;
+            color: white;
+        }
+        
+        .category-display {
+            text-align: center;
+            padding: 15px;
+            background-color: #e3f2fd;
+            border-radius: 6px;
+            color: #1565c0;
+            font-weight: bold;
+        }
+        
+        .storage-item {
+            padding: 15px;
+            margin-bottom: 10px;
+            background-color: white;
+            border-radius: 5px;
+            border: 1px solid #e0e0e0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .storage-item-content {
+            flex: 1;
+            margin-right: 15px;
+        }
+        
+        .storage-item-key {
+            font-weight: bold;
+            color: #4a6cf7;
+            margin-bottom: 5px;
+            word-break: break-all;
+        }
+        
+        .storage-item-value {
+            font-size: 12px;
+            color: #666;
+            word-break: break-all;
+            max-height: 60px;
+            overflow-y: auto;
+        }
+        
+        .delete-btn {
+            background: #f44336;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+            width: auto;
+            min-width: 80px;
+        }
+        
+        .delete-btn:hover {
+            background: #d32f2f;
+            transform: translateY(-1px);
+        }
+        
+        .empty-storage {
+            text-align: center;
+            color: #999;
+            padding: 30px;
+        }
+        
+        .storage-count {
+            text-align: center;
+            color: #666;
+            margin-bottom: 15px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>物业端人脸上传系统</h1>
+        
+        <div class="category-section">
+            <h3>选择分类</h3>
+            <div class="category-options">
+                <div class="category-option selected" data-category="wuYe">业主</div>
+                <div class="category-option" data-category="waiMai">外卖</div>
+                <div class="category-option" data-category="kuaiDi">快递</div>
+            </div>
+            <div class="category-display" id="categoryDisplay">当前分类：业主</div>
+        </div>
+        
+        <div class="time-section">
+            <h3>选择有效期（可选）</h3>
+            <div class="time-options">
+                <div class="time-option" data-hours="1">1小时</div>
+                <div class="time-option" data-hours="6">6小时</div>
+                <div class="time-option" data-hours="12">12小时</div>
+                <div class="time-option" data-hours="24">1天</div>
+                <div class="time-option" data-hours="72">3天</div>
+                <div class="time-option" data-hours="168">7天</div>
+                <div class="time-option" data-hours="336">14天</div>
+                <div class="time-option" data-hours="720">30天</div>
+            </div>
+            <div class="time-display" id="timeDisplay">未选择有效期（默认永久有效）</div>
+        </div>
+        
+        <div class="upload-section">
+            <input type="file" id="fileInput" class="file-input" accept="image/*" multiple>
+            <button id="uploadBtn">上传并处理照片</button>
+            <button id="permanentUploadBtn" class="permanent-btn">永久上传（无有效期）</button>
+            <button id="clearBtn" class="clear-btn">清除所有基准人脸</button>
+            <button id="viewStorageBtn" style="background: #ff9800; margin-top: 10px;">查看存储的键值对</button>
+        </div>
+        
+        <div id="status" class="status info">
+            请选择人脸照片进行上传...
+        </div>
+        
+        <div class="progress-bar">
+            <div id="progressBarFill" class="progress-bar-fill"></div>
+        </div>
+        
+        <div id="uploadResult" class="upload-result" style="display: none;">
+            <h3>上传结果</h3>
+            <div id="resultList"></div>
+        </div>
+        
+        <div id="storageResult" class="upload-result" style="display: none;">
+            <h3>LocalStorage键值对</h3>
+            <div id="storageList"></div>
+        </div>
+    </div>
+
+    <script>
+        // 全局变量
+        let isProcessing = false;
+        let currentModel = 'tiny'; // 使用轻量级模型以提高速度
+        let minConfidence = 0.3;
+        const modelPath = './models';
+        let selectedHours = null; // 选中的有效期（小时），null表示永久
+        let selectedCategory = 'wuYe'; // 选中的分类：wuYe(业主)、waiMai(外卖)、kuaiDi(快递)
+        
+        // DOM元素
+        const fileInput = document.getElementById('fileInput');
+        const uploadBtn = document.getElementById('uploadBtn');
+        const permanentUploadBtn = document.getElementById('permanentUploadBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        const statusElement = document.getElementById('status');
+        const progressBarFill = document.getElementById('progressBarFill');
+        const uploadResult = document.getElementById('uploadResult');
+        const resultList = document.getElementById('resultList');
+        const viewStorageBtn = document.getElementById('viewStorageBtn');
+        const storageResult = document.getElementById('storageResult');
+        const storageList = document.getElementById('storageList');
+        const timeDisplay = document.getElementById('timeDisplay');
+        const timeOptions = document.querySelectorAll('.time-option');
+        const categoryDisplay = document.getElementById('categoryDisplay');
+        const categoryOptions = document.querySelectorAll('.category-option');
+        
+        // 初始化
+        async function init() {
+            try {
+                statusElement.textContent = '正在加载人脸检测模型...';
+                statusElement.className = 'status info';
+                
+                // 加载必要的模型
+                await Promise.all([
+                    faceapi.nets.tinyFaceDetector.loadFromUri(modelPath + '/tiny_face_detector'),
+                    faceapi.nets.faceLandmark68Net.loadFromUri(modelPath + '/face_landmark_68'),
+                    faceapi.nets.faceRecognitionNet.loadFromUri(modelPath + '/face_recognition')
+                ]);
+                
+                statusElement.textContent = '模型加载完成，可以开始上传照片...';
+                statusElement.className = 'status success';
+                uploadBtn.disabled = false;
+                
+                // 加载已有的基准人脸数量
+                loadReferenceFaceCount();
+                
+                // 添加分类选择事件监听
+                addCategoryOptionListeners();
+                
+                // 添加时间选择事件监听
+                addTimeOptionListeners();
+                
+            } catch (error) {
+                console.error('模型加载失败:', error);
+                statusElement.innerHTML = `模型加载失败: ${error.message}`;
+                statusElement.className = 'status error';
+            }
+        }
+        
+        // 添加分类选择事件监听
+        function addCategoryOptionListeners() {
+            categoryOptions.forEach(option => {
+                option.addEventListener('click', () => {
+                    categoryOptions.forEach(opt => opt.classList.remove('selected'));
+                    option.classList.add('selected');
+                    selectedCategory = option.dataset.category;
+                    
+                    const categoryNames = {
+                        'wuYe': '业主',
+                        'waiMai': '外卖',
+                        'kuaiDi': '快递'
+                    };
+                    categoryDisplay.textContent = `当前分类：${categoryNames[selectedCategory]}`;
+                    categoryDisplay.style.backgroundColor = '#e8f5e9';
+                    categoryDisplay.style.color = '#2e7d32';
+                });
+            });
+        }
+        
+        // 添加时间选择事件监听
+        function addTimeOptionListeners() {
+            timeOptions.forEach(option => {
+                option.addEventListener('click', () => {
+                    timeOptions.forEach(opt => opt.classList.remove('selected'));
+                    option.classList.add('selected');
+                    selectedHours = parseInt(option.dataset.hours);
+                    
+                    const expiryDate = new Date(Date.now() + selectedHours * 60 * 60 * 1000);
+                    timeDisplay.textContent = `有效期: ${selectedHours}小时 (到期时间: ${expiryDate.toLocaleString('zh-CN')})`;
+                    timeDisplay.style.backgroundColor = '#e8f5e9';
+                    timeDisplay.style.color = '#2e7d32';
+                });
+            });
+        }
+        
+        // 加载已有的基准人脸数量
+        function loadReferenceFaceCount() {
+            const categories = {
+                'wuYe': { name: '业主', count: 0 },
+                'waiMai': { name: '外卖', count: 0 },
+                'kuaiDi': { name: '快递', count: 0 }
+            };
+            
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key) {
+                    if (key.startsWith('yeZhu_face_descriptor_')) {
+                        categories.wuYe.count++;
+                    } else if (key.startsWith('waiMai_face_descriptor_')) {
+                        categories.waiMai.count++;
+                    } else if (key.startsWith('kuaiDi_face_descriptor_')) {
+                        categories.kuaiDi.count++;
+                    }
+                }
+            }
+            
+            const totalCount = categories.wuYe.count + categories.waiMai.count + categories.kuaiDi.count;
+            
+            if (totalCount > 0) {
+                const existingInfo = document.createElement('div');
+                existingInfo.className = 'status success';
+                let infoText = `当前已存储 ${totalCount} 个基准人脸：`;
+                const details = [];
+                for (const [key, value] of Object.entries(categories)) {
+                    if (value.count > 0) {
+                        details.push(`${value.name} ${value.count}个`);
+                    }
+                }
+                infoText += details.join('，');
+                existingInfo.textContent = infoText;
+                statusElement.insertAdjacentElement('afterend', existingInfo);
+            }
+        }
+        
+        // 上传照片（带有效期）
+        async function uploadPhotos() {
+            const files = Array.from(fileInput.files);
+            if (files.length === 0) {
+                statusElement.textContent = '请先选择照片';
+                statusElement.className = 'status error';
+                return;
+            }
+            
+            isProcessing = true;
+            uploadBtn.disabled = true;
+            permanentUploadBtn.disabled = true;
+            clearBtn.disabled = true;
+            
+            const categoryNames = {
+                'wuYe': '业主',
+                'waiMai': '外卖',
+                'kuaiDi': '快递'
+            };
+            statusElement.textContent = `开始处理 ${files.length} 张照片（${categoryNames[selectedCategory]}）...`;
+            statusElement.className = 'status info';
+            
+            uploadResult.style.display = 'block';
+            resultList.innerHTML = '';
+            
+            let processedCount = 0;
+            let savedCount = 0;
+            
+            for (const file of files) {
+                try {
+                    // 更新进度条
+                    const progress = ((processedCount + 1) / files.length) * 100;
+                    progressBarFill.style.width = `${progress}%`;
+                    
+                    // 创建文件结果项
+                    const fileItem = document.createElement('div');
+                    fileItem.className = 'file-item';
+                    fileItem.innerHTML = `<strong>${file.name}</strong>: 处理中...`;
+                    resultList.appendChild(fileItem);
+                    
+                    // 处理照片（带有效期）
+                    const success = await processPhoto(file, selectedHours, selectedCategory);
+                    
+                    if (success) {
+                        fileItem.className = 'file-item success';
+                        let expiryText = '永久有效';
+                        if (selectedHours) {
+                            const expiryDate = new Date(Date.now() + selectedHours * 60 * 60 * 1000);
+                            expiryText = `有效期: ${selectedHours}小时 (到期: ${expiryDate.toLocaleString('zh-CN')})`;
+                        }
+                        fileItem.innerHTML = `<strong>${file.name}</strong>: 成功保存（${categoryNames[selectedCategory]}）<br><div class="expiry-info">${expiryText}</div>`;
+                        savedCount++;
+                    } else {
+                        fileItem.className = 'file-item error';
+                        fileItem.innerHTML = `<strong>${file.name}</strong>: 未检测到人脸`;
+                    }
+                    
+                } catch (error) {
+                    console.error(`处理照片 ${file.name} 失败:`, error);
+                    const fileItem = document.createElement('div');
+                    fileItem.className = 'file-item error';
+                    fileItem.innerHTML = `<strong>${file.name}</strong>: 处理失败 - ${error.message}`;
+                    resultList.appendChild(fileItem);
+                } finally {
+                    processedCount++;
+                }
+            }
+            
+            // 完成处理
+            progressBarFill.style.width = '100%';
+            statusElement.textContent = `处理完成，成功保存 ${savedCount}/${files.length} 张基准人脸（${categoryNames[selectedCategory]}）`;
+            statusElement.className = 'status success';
+            
+            isProcessing = false;
+            uploadBtn.disabled = false;
+            permanentUploadBtn.disabled = false;
+            clearBtn.disabled = false;
+            
+            // 清空文件选择
+            fileInput.value = '';
+        }
+        
+        // 永久上传（无有效期）
+        async function permanentUpload() {
+            const files = Array.from(fileInput.files);
+            if (files.length === 0) {
+                statusElement.textContent = '请先选择照片';
+                statusElement.className = 'status error';
+                return;
+            }
+            
+            isProcessing = true;
+            uploadBtn.disabled = true;
+            permanentUploadBtn.disabled = true;
+            clearBtn.disabled = true;
+            
+            const categoryNames = {
+                'wuYe': '业主',
+                'waiMai': '外卖',
+                'kuaiDi': '快递'
+            };
+            statusElement.textContent = `开始处理 ${files.length} 张照片（${categoryNames[selectedCategory]}，永久有效）...`;
+            statusElement.className = 'status info';
+            
+            uploadResult.style.display = 'block';
+            resultList.innerHTML = '';
+            
+            let processedCount = 0;
+            let savedCount = 0;
+            
+            for (const file of files) {
+                try {
+                    // 更新进度条
+                    const progress = ((processedCount + 1) / files.length) * 100;
+                    progressBarFill.style.width = `${progress}%`;
+                    
+                    // 创建文件结果项
+                    const fileItem = document.createElement('div');
+                    fileItem.className = 'file-item';
+                    fileItem.innerHTML = `<strong>${file.name}</strong>: 处理中...`;
+                    resultList.appendChild(fileItem);
+                    
+                    // 处理照片（永久有效，传null）
+                    const success = await processPhoto(file, null, selectedCategory);
+                    
+                    if (success) {
+                        fileItem.className = 'file-item success';
+                        fileItem.innerHTML = `<strong>${file.name}</strong>: 成功保存（${categoryNames[selectedCategory]}，永久有效）`;
+                        savedCount++;
+                    } else {
+                        fileItem.className = 'file-item error';
+                        fileItem.innerHTML = `<strong>${file.name}</strong>: 未检测到人脸`;
+                    }
+                    
+                } catch (error) {
+                    console.error(`处理照片 ${file.name} 失败:`, error);
+                    const fileItem = document.createElement('div');
+                    fileItem.className = 'file-item error';
+                    fileItem.innerHTML = `<strong>${file.name}</strong>: 处理失败 - ${error.message}`;
+                    resultList.appendChild(fileItem);
+                } finally {
+                    processedCount++;
+                }
+            }
+            
+            // 完成处理
+            progressBarFill.style.width = '100%';
+            statusElement.textContent = `处理完成，成功保存 ${savedCount}/${files.length} 张基准人脸（${categoryNames[selectedCategory]}，永久有效）`;
+            statusElement.className = 'status success';
+            
+            isProcessing = false;
+            uploadBtn.disabled = false;
+            permanentUploadBtn.disabled = false;
+            clearBtn.disabled = false;
+            
+            // 清空文件选择
+            fileInput.value = '';
+        }
+        
+        // 处理单张照片
+        async function processPhoto(file, durationHours = null, category = 'wuYe') {
+            // 读取文件并创建图像元素
+            const imgElement = await new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const img = new Image();
+                    img.onload = () => resolve(img);
+                    img.onerror = reject;
+                    img.src = e.target.result;
+                };
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+            
+            // 检测人脸
+            const options = new faceapi.TinyFaceDetectorOptions({
+                inputSize: 320,
+                scoreThreshold: minConfidence
+            });
+            
+            const detections = await faceapi.detectAllFaces(
+                imgElement, 
+                options
+            ).withFaceLandmarks()
+             .withFaceDescriptors();
+            
+            if (detections.length === 0) {
+                return false;
+            } else if (detections.length > 1) {
+                // 如果有多张人脸，只保存第一张
+                console.log(`照片 ${file.name} 中检测到 ${detections.length} 张人脸，只保存第一张`);
+            }
+            
+            // 保存人脸描述符
+            const faceDescriptor = detections[0].descriptor;
+            const fileName = file.name.split('.').slice(0, -1).join('.'); // 去除文件扩展名
+            const keyName = `${category === 'wuYe' ? 'yeZhu' : category}_face_descriptor_${fileName}_${Date.now()}`; // 根据分类生成键名，业主使用 yeZhu
+            
+            // 根据durationHours参数决定是否设置有效期
+            let faceData;
+            if (durationHours === null) {
+                // 永久有效，只存储描述符
+                faceData = Array.from(faceDescriptor);
+            } else {
+                // 有有效期，存储完整信息
+                const expiryTime = Date.now() + durationHours * 60 * 60 * 1000;
+                faceData = {
+                    descriptor: Array.from(faceDescriptor),
+                    expiryTime: expiryTime,
+                    uploadTime: Date.now(),
+                    duration: durationHours
+                };
+            }
+            
+            localStorage.setItem(keyName, JSON.stringify(faceData));
+            
+            return true;
+        }
+        
+        // 清除所有基准人脸
+        function clearAllReferenceFaces() {
+            if (confirm('确定要清除所有基准人脸吗？此操作不可恢复。')) {
+                const categories = {
+                    'wuYe': { name: '业主', count: 0 },
+                    'waiMai': { name: '外卖', count: 0 },
+                    'kuaiDi': { name: '快递', count: 0 }
+                };
+                
+                for (let i = 0; i < localStorage.length; i++) {
+                    const key = localStorage.key(i);
+                    if (key) {
+                        if (key.startsWith('yeZhu_face_descriptor_')) {
+                            localStorage.removeItem(key);
+                            categories.wuYe.count++;
+                            i--;
+                        } else if (key.startsWith('waiMai_face_descriptor_')) {
+                            localStorage.removeItem(key);
+                            categories.waiMai.count++;
+                            i--;
+                        } else if (key.startsWith('kuaiDi_face_descriptor_')) {
+                            localStorage.removeItem(key);
+                            categories.kuaiDi.count++;
+                            i--;
+                        }
+                    }
+                }
+                
+                const totalCount = categories.wuYe.count + categories.waiMai.count + categories.kuaiDi.count;
+                let infoText = `已清除 ${totalCount} 个基准人脸：`;
+                const details = [];
+                for (const [key, value] of Object.entries(categories)) {
+                    if (value.count > 0) {
+                        details.push(`${value.name} ${value.count}个`);
+                    }
+                }
+                infoText += details.join('，');
+                statusElement.textContent = infoText;
+                statusElement.className = 'status success';
+                
+                // 隐藏上传结果
+                uploadResult.style.display = 'none';
+                progressBarFill.style.width = '0';
+                
+                // 刷新存储列表
+                if (storageResult.style.display !== 'none') {
+                    viewStorage();
+                }
+            }
+        }
+        
+        // 查看localStorage键值对
+        function viewStorage() {
+            storageResult.style.display = 'block';
+            storageList.innerHTML = '';
+            
+            // 获取所有键值对
+            const keys = [];
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key && (key.startsWith('yeZhu_face_descriptor_') || 
+                           key.startsWith('waiMai_face_descriptor_') || 
+                           key.startsWith('kuaiDi_face_descriptor_'))) {
+                    keys.push(key);
+                }
+            }
+            
+            if (keys.length === 0) {
+                storageList.innerHTML = '<div class="empty-storage">暂无上传的人脸数据</div>';
+                return;
+            }
+            
+            // 按分类分组
+            const categories = {
+                'wuYe': { name: '业主', keys: [] },
+                'waiMai': { name: '外卖', keys: [] },
+                'kuaiDi': { name: '快递', keys: [] }
+            };
+            
+            keys.forEach(key => {
+                if (key.startsWith('yeZhu_face_descriptor_')) {
+                    categories.wuYe.keys.push(key);
+                } else if (key.startsWith('waiMai_face_descriptor_')) {
+                    categories.waiMai.keys.push(key);
+                } else if (key.startsWith('kuaiDi_face_descriptor_')) {
+                    categories.kuaiDi.keys.push(key);
+                }
+            });
+            
+            // 显示总数量
+            const totalCountDiv = document.createElement('div');
+            totalCountDiv.className = 'storage-count';
+            totalCountDiv.textContent = `共 ${keys.length} 个人脸数据`;
+            storageList.appendChild(totalCountDiv);
+            
+            // 按分类显示
+            for (const [categoryKey, categoryData] of Object.entries(categories)) {
+                if (categoryData.keys.length > 0) {
+                    const categoryDiv = document.createElement('div');
+                    categoryDiv.style.marginTop = '20px';
+                    categoryDiv.style.padding = '15px';
+                    categoryDiv.style.backgroundColor = '#f5f5f5';
+                    categoryDiv.style.borderRadius = '8px';
+                    categoryDiv.style.border = '2px solid #ddd';
+                    
+                    const categoryTitle = document.createElement('h4');
+                    categoryTitle.style.marginTop = '0';
+                    categoryTitle.style.color = '#4a6cf7';
+                    categoryTitle.textContent = `${categoryData.name} (${categoryData.keys.length}个)`;
+                    categoryDiv.appendChild(categoryTitle);
+                    
+                    const now = Date.now();
+                    categoryData.keys.forEach(key => {
+                        const value = localStorage.getItem(key);
+                        let parsed;
+                        let isExpired = false;
+                        let expiryInfo = '';
+                        let isPermanent = false;
+                        
+                        try {
+                            parsed = JSON.parse(value);
+                            if (Array.isArray(parsed)) {
+                                isPermanent = true;
+                                expiryInfo = '<span style="color: #4caf50;">永久有效</span>';
+                            } else if (parsed && parsed.descriptor) {
+                                isPermanent = false;
+                                const expiryDate = new Date(parsed.expiryTime);
+                                isExpired = parsed.expiryTime <= now;
+                                
+                                if (isExpired) {
+                                    expiryInfo = `<span style="color: #f44336;">已过期 (${expiryDate.toLocaleString('zh-CN')})</span>`;
+                                } else {
+                                    expiryInfo = `<span style="color: #4caf50;">有效期至: ${expiryDate.toLocaleString('zh-CN')}</span>`;
+                                }
+                            } else {
+                                expiryInfo = '数据格式错误';
+                            }
+                        } catch (e) {
+                            expiryInfo = '数据格式错误';
+                        }
+                        
+                        const itemDiv = document.createElement('div');
+                        itemDiv.className = 'storage-item';
+                        if (isExpired) {
+                            itemDiv.style.opacity = '0.6';
+                        }
+                        
+                        const contentDiv = document.createElement('div');
+                        contentDiv.className = 'storage-item-content';
+                        
+                        const keyDiv = document.createElement('div');
+                        keyDiv.className = 'storage-item-key';
+                        keyDiv.textContent = `键: ${key}`;
+                        
+                        const valueDiv = document.createElement('div');
+                        valueDiv.className = 'storage-item-value';
+                        if (isPermanent) {
+                            valueDiv.innerHTML = `${expiryInfo}`;
+                        } else {
+                            valueDiv.innerHTML = `${expiryInfo}<br>上传时间: ${new Date(parsed.uploadTime).toLocaleString('zh-CN')}<br>有效期: ${parsed.duration}小时`;
+                        }
+                        
+                        contentDiv.appendChild(keyDiv);
+                        contentDiv.appendChild(valueDiv);
+                        
+                        const deleteBtn = document.createElement('button');
+                        deleteBtn.className = 'delete-btn';
+                        deleteBtn.textContent = '删除';
+                        deleteBtn.onclick = () => deleteStorageItem(key);
+                        
+                        itemDiv.appendChild(contentDiv);
+                        itemDiv.appendChild(deleteBtn);
+                        
+                        categoryDiv.appendChild(itemDiv);
+                    });
+                    
+                    storageList.appendChild(categoryDiv);
+                }
+            }
+        }
+        
+        // 删除单个localStorage项
+        function deleteStorageItem(key) {
+            if (confirm(`确定要删除键 "${key}" 吗？此操作不可恢复。`)) {
+                localStorage.removeItem(key);
+                statusElement.textContent = `已删除键: ${key}`;
+                statusElement.className = 'status success';
+                
+                // 刷新存储列表
+                viewStorage();
+            }
+        }
+        
+        // 事件监听
+        uploadBtn.addEventListener('click', uploadPhotos);
+        permanentUploadBtn.addEventListener('click', permanentUpload);
+        clearBtn.addEventListener('click', clearAllReferenceFaces);
+        viewStorageBtn.addEventListener('click', viewStorage);
+        
+        // 页面加载完成后初始化
+        window.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
